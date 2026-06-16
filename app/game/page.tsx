@@ -19,12 +19,15 @@ export default function GamePage() {
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(420); // 7 menit
   
-  // Konfigurasi 3 soal dengan susunan awal yang sudah diacak secara valid
+  // Konfigurasi 3 soal dengan susunan awal yang sudah dijamin valid (Even Parity)
   // Angka 8 melambangkan petak kosong
   const [questions, setQuestions] = useState<GameState[]>([
-    { id: 1, isSolved: false, timeSolved: null, boardState: [1, 0, 2, 3, 4, 5, 6, 8, 7] },
-    { id: 2, isSolved: false, timeSolved: null, boardState: [3, 1, 2, 6, 4, 5, 8, 7, 0] },
-    { id: 3, isSolved: false, timeSolved: null, boardState: [0, 4, 2, 3, 8, 5, 6, 1, 7] },
+    // Map 1 (Tingkat Mudah - Butuh sekitar 5 step penyelesaian)
+    { id: 1, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 8, 3, 2, 6, 7, 5] },
+    // Map 2 (Tingkat Sedang)
+    { id: 2, isSolved: false, timeSolved: null, boardState: [0, 1, 8, 6, 5, 2, 4, 3, 7] },
+    // Map 3 (Tingkat Sulit)
+    { id: 3, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 6, 3, 2, 7, 8, 5] },
   ]);
   
   const [currentIndex, setCurrentIndex] = useState<number>(0);
