@@ -22,8 +22,19 @@ export default function GamePage() {
   const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   
   const [questions, setQuestions] = useState<GameState[]>([
+    // Puzzle 1: "Absolute Reverse"
+    // Posisi gambar 100% terbalik dari atas ke bawah dan kiri ke kanan. 
+    // Pemain akan panik karena harus membongkar seluruh susunan.
     { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [7, 6, 5, 4, 3, 2, 1, 0, 8] },
+
+    // Puzzle 2: "The Spiral Lock"
+    // Angka-angka menjebak mengitari petak kosong di tengah (8). 
+    // Pemain sering kali tanpa sadar merusak baris yang sudah benar saat mencoba menggeser sudut.
     { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [5, 4, 6, 3, 8, 7, 2, 1, 0] },
+
+    // Puzzle 3: "Corner Scramble"
+    // Terlihat acak berantakan. Potongan sudut berada di tengah, dan potongan tepi berada di sudut.
+    // Membutuhkan banyak manuver "memutar" 3-4 balok sekaligus untuk memasukkannya ke tempat yang benar.
     { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [2, 7, 0, 5, 8, 3, 6, 1, 4] },
   ]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -114,14 +125,14 @@ export default function GamePage() {
       const totalSolved = currentQuestions.filter(q => q.isSolved).length;
       
       if (totalSolved === 3) {
-        showToast("Luar Biasa! Semua Map Selesai!");
+        showToast("Luar Biasa! Semua Puzzle Selesai!");
         localStorage.setItem("gameResults", JSON.stringify({ questions: currentQuestions, timeLeft }));
         
         setTimeout(() => {
           router.push("/result");
         }, 2000); 
       } else {
-        showToast("Map Berhasil Diselesaikan!");
+        showToast("Puzzle Berhasil Diselesaikan!");
         handleNextOrSkip(currentQuestions);
       }
     }
