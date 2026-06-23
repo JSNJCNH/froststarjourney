@@ -22,9 +22,9 @@ export default function GamePage() {
   const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   
   const [questions, setQuestions] = useState<GameState[]>([
-    { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 8, 3, 2, 6, 7, 5] },
-    { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [0, 1, 8, 6, 5, 2, 4, 3, 7] },
-    { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 6, 3, 2, 7, 8, 5] },
+    { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [7, 6, 5, 4, 3, 2, 1, 0, 8] },
+    { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [5, 4, 6, 3, 8, 7, 2, 1, 0] },
+    { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [2, 7, 0, 5, 8, 3, 6, 1, 4] },
   ]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
