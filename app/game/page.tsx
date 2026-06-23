@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type GameState = {
   id: number;
-  imageId: number; // Tambahan untuk menyimpan ID gambar yang terpilih
+  imageId: number; 
   isSolved: boolean;
   timeSolved: number | null;
   boardState: number[];
@@ -18,10 +18,9 @@ export default function GamePage() {
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(420); 
   
-  // Toast Notification State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   
-  // imageId diset 1,2,3 sebagai default, akan diacak oleh useEffect saat mount
   const [questions, setQuestions] = useState<GameState[]>([
     { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 8, 3, 2, 6, 7, 5] },
     { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [0, 1, 8, 6, 5, 2, 4, 3, 7] },
@@ -29,18 +28,14 @@ export default function GamePage() {
   ]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  // --- EFEK: PENGACAKAN GAMBAR (HANYA SEKALI SAAT LOAD) ---
   useEffect(() => {
-    // Membuat array 1-6, diacak, lalu diambil 3 angka pertama
     const randomImages = [1, 2, 3, 4, 5, 6].sort(() => 0.5 - Math.random()).slice(0, 3);
-    
     setQuestions(prev => prev.map((q, i) => ({
       ...q,
-      imageId: randomImages[i] // Menyematkan ID gambar acak ke masing-masing soal
+      imageId: randomImages[i] 
     })));
   }, []);
 
-  // --- EFEK: HITUNG MUNDUR ---
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -50,7 +45,6 @@ export default function GamePage() {
     }
   }, [countdown, isGameStarted]);
 
-  // --- EFEK: TIMER WAKTU PERMAINAN ---
   useEffect(() => {
     if (isGameStarted && timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
@@ -58,7 +52,6 @@ export default function GamePage() {
     }
   }, [isGameStarted, timeLeft]); 
 
-  // --- EFEK: WAKTU HABIS ---
   useEffect(() => {
     if (timeLeft === 0) {
       localStorage.setItem("gameResults", JSON.stringify({ questions, timeLeft }));
@@ -72,12 +65,18 @@ export default function GamePage() {
     return `${m}:${s}`;
   };
 
-  // Fungsi pemanggil Toast Notification
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
-      setToastMessage(null);
-    }, 2500); // Toast menghilang dalam 2.5 detik
+      setIsToastVisible(true);
+    }, 10);
+
+    setTimeout(() => {
+      setIsToastVisible(false);
+      setTimeout(() => {
+        setToastMessage(null);
+      }, 300);
+    }, 2000);
   };
 
   const handleTileClick = (tileIndex: number) => {
@@ -118,15 +117,12 @@ export default function GamePage() {
         showToast("Luar Biasa! Semua Map Selesai!");
         localStorage.setItem("gameResults", JSON.stringify({ questions: currentQuestions, timeLeft }));
         
-        // Beri jeda 2 detik agar Toast terbaca sebelum dilempar ke halaman result
         setTimeout(() => {
           router.push("/result");
         }, 2000); 
       } else {
         showToast("Map Berhasil Diselesaikan!");
-        setTimeout(() => {
-          handleNextOrSkip(currentQuestions);
-        }, 1500); // Jeda sebelum otomatis pindah soal
+        handleNextOrSkip(currentQuestions);
       }
     }
   };
@@ -144,16 +140,10 @@ export default function GamePage() {
   const activeImageId = questions[currentIndex].imageId;
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-200 relative overflow-hidden">
+    // Mengunci tinggi ke h-screen agar tidak bisa di-scroll
+    <main className="flex h-screen flex-col items-center p-6 bg-gray-200 overflow-hidden">
       
-      {/* Toast Notification Element */}
-      {toastMessage && (
-        <div className="absolute top-10 right-10 z-50 bg-green-500 text-white px-6 py-4 rounded-md shadow-2xl font-bold transition-all animate-bounce">
-          {toastMessage}
-        </div>
-      )}
-
-      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 mb-8">
+      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 shrink-0 relative z-20 bg-gray-200">
         <h1 className="font-bold text-xl text-black">TULISAN MOB FT</h1>
         <h1 className="font-bold text-xl text-black">FROST STAR JOURNEY</h1>
         <div className="px-4 py-2 bg-gray-400 text-black font-semibold rounded-md">
@@ -166,16 +156,29 @@ export default function GamePage() {
           <p className="text-8xl font-bold text-gray-800 animate-pulse">{countdown}</p>
         </div>
       ) : (
-        <div className="flex flex-col w-full max-w-4xl relative">
+        // flex-1 mendorong kontainer ini mengisi ruang dari bawah header hingga dasar layar
+        <div className="flex flex-col flex-1 w-full max-w-4xl relative z-10 py-4">
+
+          <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
+            {toastMessage && (
+              <div 
+                className={`bg-lime-400 text-black font-bold text-xl px-12 py-3 rounded-b-md shadow-md pointer-events-auto transform transition-all duration-300 ease-in-out ${
+                  isToastVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+                }`}
+              >
+                {toastMessage}
+              </div>
+            )}
+          </div>
           
-          <div className="flex justify-between items-start mb-8">
+          {/* ROW 1: TIMER DAN HINT (shrink-0 menahan elemen ini agar tidak gepeng) */}
+          <div className="flex justify-between items-start w-full shrink-0 relative z-10">
             <div className="px-6 py-3 bg-gray-400 text-black font-bold text-2xl rounded-md shadow-inner">
               {formatTime(timeLeft)}
             </div>
             
-            {/* Target Gambar Miniatur menggunakan ID Gambar yang sudah diacak */}
             <div 
-              className="w-32 h-32 border-4 border-gray-400 shadow-lg rounded-sm"
+              className="w-28 h-28 border-4 border-gray-400 shadow-lg rounded-sm"
               style={{
                 backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
                 backgroundSize: 'cover'
@@ -183,8 +186,9 @@ export default function GamePage() {
             ></div>
           </div>
 
-          <div className="flex justify-center mb-8">
-            <div className="w-[450px] h-[450px] bg-gray-400 grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
+          {/* ROW 2: PUZZLE (flex-1 meletakkan puzzle persis di tengah-tengah sisa layar) */}
+          <div className="flex-1 flex justify-center items-center w-full relative z-10 min-h-0">
+            <div className="w-[420px] h-[420px] bg-gray-400 grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
               {activeBoard.map((tile, index) => (
                 <div
                   key={index}
@@ -197,7 +201,6 @@ export default function GamePage() {
                   style={
                     tile !== 8
                       ? {
-                          // Memanggil gambar menggunakan ID acak
                           backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
                           backgroundSize: '300% 300%',
                           backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
@@ -209,7 +212,8 @@ export default function GamePage() {
             </div>
           </div>
 
-          <div className="absolute bottom-0 right-0">
+          {/* ROW 3: TOMBOL NEXT / SKIP (Tidak lagi menggunakan absolute, secara natural terdorong ke bawah) */}
+          <div className="flex justify-end w-full shrink-0 z-10">
             <button 
               onClick={() => handleNextOrSkip()}
               className="px-8 py-3 bg-gray-400 hover:bg-gray-500 text-black font-bold rounded-xl shadow-md transition-colors"
