@@ -3,36 +3,44 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// Tipe data untuk menyimpan status soal
 type GameState = {
   id: number;
+  imageId: number; // Tambahan untuk menyimpan ID gambar yang terpilih
   isSolved: boolean;
   timeSolved: number | null;
-  boardState: number[]; // Menyimpan posisi susunan per soal agar tidak reset saat di-skip
+  boardState: number[];
 };
 
 export default function GamePage() {
   const router = useRouter();
 
-  // --- STATE MANAJEMEN ---
   const [countdown, setCountdown] = useState<number>(3);
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
-  const [timeLeft, setTimeLeft] = useState<number>(420); // 7 menit
+  const [timeLeft, setTimeLeft] = useState<number>(420); 
   
-  // Konfigurasi 3 soal dengan susunan awal yang sudah dijamin valid (Even Parity)
-  // Angka 8 melambangkan petak kosong
+  // Toast Notification State
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // imageId diset 1,2,3 sebagai default, akan diacak oleh useEffect saat mount
   const [questions, setQuestions] = useState<GameState[]>([
-    // Map 1 (Tingkat Mudah - Butuh sekitar 5 step penyelesaian)
-    { id: 1, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 8, 3, 2, 6, 7, 5] },
-    // Map 2 (Tingkat Sedang)
-    { id: 2, isSolved: false, timeSolved: null, boardState: [0, 1, 8, 6, 5, 2, 4, 3, 7] },
-    // Map 3 (Tingkat Sulit)
-    { id: 3, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 6, 3, 2, 7, 8, 5] },
+    { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 8, 3, 2, 6, 7, 5] },
+    { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [0, 1, 8, 6, 5, 2, 4, 3, 7] },
+    { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [0, 4, 1, 6, 3, 2, 7, 8, 5] },
   ]);
-  
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  // --- EFEK: HITUNG MUNDUR & TIMER ---
+  // --- EFEK: PENGACAKAN GAMBAR (HANYA SEKALI SAAT LOAD) ---
+  useEffect(() => {
+    // Membuat array 1-6, diacak, lalu diambil 3 angka pertama
+    const randomImages = [1, 2, 3, 4, 5, 6].sort(() => 0.5 - Math.random()).slice(0, 3);
+    
+    setQuestions(prev => prev.map((q, i) => ({
+      ...q,
+      imageId: randomImages[i] // Menyematkan ID gambar acak ke masing-masing soal
+    })));
+  }, []);
+
+  // --- EFEK: HITUNG MUNDUR ---
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -42,22 +50,21 @@ export default function GamePage() {
     }
   }, [countdown, isGameStarted]);
 
-  // --- EFEK 1: MENGURANGI WAKTU SETIAP DETIK ---
+  // --- EFEK: TIMER WAKTU PERMAINAN ---
   useEffect(() => {
     if (isGameStarted && timeLeft > 0) {
-      // Gunakan functional state update (prev => prev - 1) agar lebih aman
       const timer = setTimeout(() => setTimeLeft(prev => prev - 1), 1000);
       return () => clearTimeout(timer);
     }
-  }, [isGameStarted, timeLeft]); // Hanya bergantung pada isGameStarted dan timeLeft
+  }, [isGameStarted, timeLeft]); 
 
-  // --- EFEK 2: MENANGANI SKENARIO WAKTU HABIS ---
+  // --- EFEK: WAKTU HABIS ---
   useEffect(() => {
     if (timeLeft === 0) {
       localStorage.setItem("gameResults", JSON.stringify({ questions, timeLeft }));
       router.push("/result");
     }
-  }, [timeLeft, questions, router]); // Terpisah dengan aman, hanya dieksekusi bila timeLeft = 0
+  }, [timeLeft, questions, router]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -65,7 +72,14 @@ export default function GamePage() {
     return `${m}:${s}`;
   };
 
-  // --- LOGIKA SLIDING PUZZLE & CSS SPRITE ---
+  // Fungsi pemanggil Toast Notification
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 2500); // Toast menghilang dalam 2.5 detik
+  };
+
   const handleTileClick = (tileIndex: number) => {
     if (!isGameStarted || questions[currentIndex].isSolved) return;
 
@@ -77,11 +91,9 @@ export default function GamePage() {
     const rowEmpty = Math.floor(emptyIndex / 3);
     const colEmpty = emptyIndex % 3;
 
-    // Cek apakah balok yang ditekan bersebelahan dengan petak kosong
     const isAdjacent = Math.abs(rowTile - rowEmpty) + Math.abs(colTile - colEmpty) === 1;
 
     if (isAdjacent) {
-      // Lakukan pertukaran (Swap)
       [currentBoard[tileIndex], currentBoard[emptyIndex]] = [currentBoard[emptyIndex], currentBoard[tileIndex]];
       
       const newQuestions = [...questions];
@@ -92,32 +104,33 @@ export default function GamePage() {
     }
   };
 
-    const checkWinCondition = (currentBoard: number[], currentQuestions: GameState[]) => {
-    // Menang jika susunan berurutan persis [0,1,2,3,4,5,6,7,8]
+  const checkWinCondition = (currentBoard: number[], currentQuestions: GameState[]) => {
     const isWin = currentBoard.every((val, i) => val === i);
     
     if (isWin) {
-        currentQuestions[currentIndex].isSolved = true;
-        currentQuestions[currentIndex].timeSolved = 420 - timeLeft; // Catat waktu submit
-        setQuestions(currentQuestions);
-        
-        const totalSolved = currentQuestions.filter(q => q.isSolved).length;
-        
-        if (totalSolved === 3) {
-        alert("Semua Map Selesai!");
-        
-        // -> LETAKKAN DI SINI UNTUK SKENARIO MENANG <-
+      currentQuestions[currentIndex].isSolved = true;
+      currentQuestions[currentIndex].timeSolved = 420 - timeLeft; 
+      setQuestions(currentQuestions);
+      
+      const totalSolved = currentQuestions.filter(q => q.isSolved).length;
+      
+      if (totalSolved === 3) {
+        showToast("Luar Biasa! Semua Map Selesai!");
         localStorage.setItem("gameResults", JSON.stringify({ questions: currentQuestions, timeLeft }));
         
-        router.push("/result"); // Semua selesai, lempar ke result
-        } else {
-        handleNextOrSkip(currentQuestions);
-        }
+        // Beri jeda 2 detik agar Toast terbaca sebelum dilempar ke halaman result
+        setTimeout(() => {
+          router.push("/result");
+        }, 2000); 
+      } else {
+        showToast("Map Berhasil Diselesaikan!");
+        setTimeout(() => {
+          handleNextOrSkip(currentQuestions);
+        }, 1500); // Jeda sebelum otomatis pindah soal
+      }
     }
-    };
+  };
 
-  // --- LOGIKA SKIP / NEXT ---
-  // Mencari soal berikutnya yang belum di-solve, memutar kembali ke awal jika sudah di ujung array
   const handleNextOrSkip = (latestQuestions = questions) => {
     let nextIdx = (currentIndex + 1) % 3;
     while (latestQuestions[nextIdx].isSolved && nextIdx !== currentIndex) {
@@ -128,11 +141,18 @@ export default function GamePage() {
 
   const solvedCount = questions.filter(q => q.isSolved).length;
   const activeBoard = questions[currentIndex].boardState;
+  const activeImageId = questions[currentIndex].imageId;
 
-  // --- RENDER UI ---
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-200">
-      {/* Header */}
+    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-200 relative overflow-hidden">
+      
+      {/* Toast Notification Element */}
+      {toastMessage && (
+        <div className="absolute top-10 right-10 z-50 bg-green-500 text-white px-6 py-4 rounded-md shadow-2xl font-bold transition-all animate-bounce">
+          {toastMessage}
+        </div>
+      )}
+
       <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 mb-8">
         <h1 className="font-bold text-xl text-black">TULISAN MOB FT</h1>
         <h1 className="font-bold text-xl text-black">FROST STAR JOURNEY</h1>
@@ -153,17 +173,16 @@ export default function GamePage() {
               {formatTime(timeLeft)}
             </div>
             
-            {/* Target Gambar Miniatur (Hint) */}
+            {/* Target Gambar Miniatur menggunakan ID Gambar yang sudah diacak */}
             <div 
               className="w-32 h-32 border-4 border-gray-400 shadow-lg rounded-sm"
               style={{
-                backgroundImage: `url('/assets/soal${currentIndex + 1}.jpeg')`,
+                backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
                 backgroundSize: 'cover'
               }}
             ></div>
           </div>
 
-          {/* Arena Puzzle 3x3 */}
           <div className="flex justify-center mb-8">
             <div className="w-[450px] h-[450px] bg-gray-400 grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
               {activeBoard.map((tile, index) => (
@@ -172,17 +191,15 @@ export default function GamePage() {
                   onClick={() => handleTileClick(index)}
                   className={`transition-transform duration-150 ${
                     tile === 8 
-                      ? "bg-gray-300 shadow-inner" // Petak kosong
+                      ? "bg-gray-300 shadow-inner" 
                       : "cursor-pointer hover:brightness-110 shadow-md"
                   }`}
                   style={
                     tile !== 8
                       ? {
-                          // Memanggil gambar 1 utuh dari folder public/assets/
-                          backgroundImage: `url('/assets/soal${currentIndex + 1}.jpeg')`,
-                          // Memperbesar gambar menjadi 3x lipat agar pas dipotong grid 3x3
+                          // Memanggil gambar menggunakan ID acak
+                          backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
                           backgroundSize: '300% 300%',
-                          // Kalkulasi letak X dan Y dari gambar utuh menggunakan persentase
                           backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
                         }
                       : {}
@@ -192,7 +209,6 @@ export default function GamePage() {
             </div>
           </div>
 
-          {/* Tombol Skip */}
           <div className="absolute bottom-0 right-0">
             <button 
               onClick={() => handleNextOrSkip()}
@@ -201,7 +217,6 @@ export default function GamePage() {
               NEXT / SKIP
             </button>
           </div>
-
         </div>
       )}
     </main>
