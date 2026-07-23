@@ -1,3 +1,7 @@
+/* 1. Import font eksternal HARUS berada di baris paling pertama */
+@import url('https://fonts.cdnfonts.com/css/mestizo-font');
+
+/* 2. Baru kemudian import Tailwind */
 @import "tailwindcss";
 
 :root {
@@ -11,10 +15,12 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  /* Daftarkan animasi baru di sini */
+  --font-mestizo: 'Mestizo Font', 'Mestizo', sans-serif;
+  
   --animate-fade-in-up: fade-in-up 0.3s ease-out forwards;
 }
 
+/* ... (sisa kode di bawahnya biarkan sama persis seperti sebelumnya) ... */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -28,7 +34,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Keyframes untuk transisi notifikasi (Tambahkan di paling bawah) */
 @keyframes fade-in-up {
   0% {
     opacity: 0;

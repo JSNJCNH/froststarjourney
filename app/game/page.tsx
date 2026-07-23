@@ -14,6 +14,9 @@ type GameState = {
 export default function GamePage() {
   const router = useRouter();
 
+  // State Hydration (Mencegah error render antara Server dan Client Next.js)
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
   const [countdown, setCountdown] = useState<number>(3);
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
   const [timeLeft, setTimeLeft] = useState<number>(420); 
@@ -21,40 +24,58 @@ export default function GamePage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isToastVisible, setIsToastVisible] = useState<boolean>(false);
   
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [questions, setQuestions] = useState<GameState[]>([
-    // Puzzle 1: "Absolute Reverse"
-    // Posisi gambar 100% terbalik dari atas ke bawah dan kiri ke kanan. 
-    // Pemain akan panik karena harus membongkar seluruh susunan.
     { id: 1, imageId: 1, isSolved: false, timeSolved: null, boardState: [7, 6, 5, 4, 3, 2, 1, 0, 8] },
-
-    // Puzzle 2: "The Spiral Lock"
-    // Angka-angka menjebak mengitari petak kosong di tengah (8). 
-    // Pemain sering kali tanpa sadar merusak baris yang sudah benar saat mencoba menggeser sudut.
     { id: 2, imageId: 2, isSolved: false, timeSolved: null, boardState: [5, 4, 6, 3, 8, 7, 2, 1, 0] },
-
-    // Puzzle 3: "Corner Scramble"
-    // Terlihat acak berantakan. Potongan sudut berada di tengah, dan potongan tepi berada di sudut.
-    // Membutuhkan banyak manuver "memutar" 3-4 balok sekaligus untuk memasukkannya ke tempat yang benar.
     { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [2, 7, 0, 5, 8, 3, 6, 1, 4] },
   ]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
+  // --- 1. INISIALISASI & LOAD PROGRESS (Hanya Berjalan Sekali Saat Mount) ---
   useEffect(() => {
-    const randomImages = [1, 2, 3, 4, 5, 6].sort(() => 0.5 - Math.random()).slice(0, 3);
-    setQuestions(prev => prev.map((q, i) => ({
-      ...q,
-      imageId: randomImages[i] 
-    })));
+    const savedProgress = localStorage.getItem("frostStarProgress");
+    
+    if (savedProgress) {
+      // Jika ada progres, muat data tersebut
+      const parsedData = JSON.parse(savedProgress);
+      setQuestions(parsedData.questions);
+      setTimeLeft(parsedData.timeLeft);
+      setCurrentIndex(parsedData.currentIndex);
+      setIsGameStarted(parsedData.isGameStarted);
+      setCountdown(0); // Lewati hitung mundur jika melanjutkan game
+    } else {
+      // Jika tidak ada progres (baru mulai), acak gambar
+      const randomImages = [1, 2, 3, 4, 5, 6].sort(() => 0.5 - Math.random()).slice(0, 3);
+      setQuestions(prev => prev.map((q, i) => ({
+        ...q,
+        imageId: randomImages[i] 
+      })));
+    }
+    setIsLoaded(true);
   }, []);
 
+  // --- 2. AUTO-SAVE PROGRESS (Berjalan Setiap Ada Perubahan State) ---
   useEffect(() => {
-    if (countdown > 0) {
+    if (isLoaded && isGameStarted) {
+      const progressData = {
+        questions,
+        timeLeft,
+        currentIndex,
+        isGameStarted
+      };
+      localStorage.setItem("frostStarProgress", JSON.stringify(progressData));
+    }
+  }, [questions, timeLeft, currentIndex, isGameStarted, isLoaded]);
+
+  // --- TIMER & HITUNG MUNDUR ---
+  useEffect(() => {
+    if (countdown > 0 && isLoaded) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (countdown === 0 && !isGameStarted) {
+    } else if (countdown === 0 && !isGameStarted && isLoaded) {
       setIsGameStarted(true);
     }
-  }, [countdown, isGameStarted]);
+  }, [countdown, isGameStarted, isLoaded]);
 
   useEffect(() => {
     if (isGameStarted && timeLeft > 0) {
@@ -63,12 +84,14 @@ export default function GamePage() {
     }
   }, [isGameStarted, timeLeft]); 
 
+  // --- 3. WAKTU HABIS (Bersihkan Progress) ---
   useEffect(() => {
-    if (timeLeft === 0) {
+    if (timeLeft === 0 && isLoaded) {
+      localStorage.removeItem("frostStarProgress"); // Hapus progress sementara
       localStorage.setItem("gameResults", JSON.stringify({ questions, timeLeft }));
       router.push("/result");
     }
-  }, [timeLeft, questions, router]);
+  }, [timeLeft, questions, router, isLoaded]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -78,15 +101,10 @@ export default function GamePage() {
 
   const showToast = (message: string) => {
     setToastMessage(message);
-    setTimeout(() => {
-      setIsToastVisible(true);
-    }, 10);
-
+    setTimeout(() => { setIsToastVisible(true); }, 10);
     setTimeout(() => {
       setIsToastVisible(false);
-      setTimeout(() => {
-        setToastMessage(null);
-      }, 300);
+      setTimeout(() => { setToastMessage(null); }, 300);
     }, 2000);
   };
 
@@ -125,14 +143,17 @@ export default function GamePage() {
       const totalSolved = currentQuestions.filter(q => q.isSolved).length;
       
       if (totalSolved === 3) {
-        showToast("Luar Biasa! Semua Puzzle Selesai!");
+        showToast("Luar Biasa! Semua Map Selesai!");
+        
+        // --- 4. GAME SELESAI (Bersihkan Progress) ---
+        localStorage.removeItem("frostStarProgress"); 
         localStorage.setItem("gameResults", JSON.stringify({ questions: currentQuestions, timeLeft }));
         
         setTimeout(() => {
           router.push("/result");
         }, 2000); 
       } else {
-        showToast("Puzzle Berhasil Diselesaikan!");
+        showToast("Map Berhasil Diselesaikan!");
         handleNextOrSkip(currentQuestions);
       }
     }
@@ -146,28 +167,30 @@ export default function GamePage() {
     setCurrentIndex(nextIdx);
   };
 
+  // Mencegah kedipan UI sebelum data selesai dimuat dari Local Storage
+  if (!isLoaded) {
+    return <main className="flex h-screen items-center justify-center bg-[#D9D9D9]"></main>;
+  }
+
   const solvedCount = questions.filter(q => q.isSolved).length;
   const activeBoard = questions[currentIndex].boardState;
   const activeImageId = questions[currentIndex].imageId;
 
   return (
-    // Mengunci tinggi ke h-screen agar tidak bisa di-scroll
-    <main className="flex h-screen flex-col items-center p-6 bg-gray-200 overflow-hidden">
-      
-      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 shrink-0 relative z-20 bg-gray-200">
-        <h1 className="font-bold text-xl text-black">TULISAN MOB FT</h1>
-        <h1 className="font-bold text-xl text-black">FROST STAR JOURNEY</h1>
-        <div className="px-4 py-2 bg-gray-400 text-black font-semibold rounded-md">
+    <main className="flex h-screen flex-col items-center p-6 bg-[#D9D9D9] overflow-hidden">
+      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-[#8C8282] shrink-0 relative z-20 bg-[#D9D9D9]">
+        <h1 className="font-mestizo font-bold text-xl text-black">TULISAN MOB FT</h1>
+        <h1 className="font-mestizo font-bold text-xl text-black">FROST STAR JOURNEY</h1>
+        <div className="px-4 py-2 bg-[#8C8282] text-black font-semibold rounded-md">
           {solvedCount}/3 Soal Terselesaikan
         </div>
       </div>
 
       {!isGameStarted ? (
         <div className="flex flex-col items-center justify-center flex-1">
-          <p className="text-8xl font-bold text-gray-800 animate-pulse">{countdown}</p>
+          <p className="font-mestizo text-8xl font-bold text-gray-800 animate-pulse">{countdown}</p>
         </div>
       ) : (
-        // flex-1 mendorong kontainer ini mengisi ruang dari bawah header hingga dasar layar
         <div className="flex flex-col flex-1 w-full max-w-4xl relative z-10 py-4">
 
           <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
@@ -182,24 +205,22 @@ export default function GamePage() {
             )}
           </div>
           
-          {/* ROW 1: TIMER DAN HINT (shrink-0 menahan elemen ini agar tidak gepeng) */}
           <div className="flex justify-between items-start w-full shrink-0 relative z-10">
-            <div className="px-6 py-3 bg-gray-400 text-black font-bold text-2xl rounded-md shadow-inner">
+            <div className="px-6 py-3 bg-[#8C8282] text-black font-bold text-2xl rounded-md shadow-inner">
               {formatTime(timeLeft)}
             </div>
             
             <div 
-              className="w-28 h-28 border-4 border-gray-400 shadow-lg rounded-sm"
+              className="w-28 h-28 border-4 border-[#8C8282] shadow-lg rounded-sm"
               style={{
-                backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
+                backgroundImage: `url('/assets/soal${activeImageId}.png')`,
                 backgroundSize: 'cover'
               }}
             ></div>
           </div>
 
-          {/* ROW 2: PUZZLE (flex-1 meletakkan puzzle persis di tengah-tengah sisa layar) */}
           <div className="flex-1 flex justify-center items-center w-full relative z-10 min-h-0">
-            <div className="w-[420px] h-[420px] bg-gray-400 grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
+            <div className="w-[420px] h-[420px] bg-[#B0B0B0] grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
               {activeBoard.map((tile, index) => (
                 <div
                   key={index}
@@ -212,7 +233,7 @@ export default function GamePage() {
                   style={
                     tile !== 8
                       ? {
-                          backgroundImage: `url('/assets/soal${activeImageId}.jpeg')`,
+                          backgroundImage: `url('/assets/soal${activeImageId}.png')`,
                           backgroundSize: '300% 300%',
                           backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
                         }
@@ -223,11 +244,10 @@ export default function GamePage() {
             </div>
           </div>
 
-          {/* ROW 3: TOMBOL NEXT / SKIP (Tidak lagi menggunakan absolute, secara natural terdorong ke bawah) */}
           <div className="flex justify-end w-full shrink-0 z-10">
             <button 
               onClick={() => handleNextOrSkip()}
-              className="px-8 py-3 bg-gray-400 hover:bg-gray-500 text-black font-bold rounded-xl shadow-md transition-colors"
+              className="px-8 py-3 bg-[#8C8282] hover:bg-[#706868] text-black font-bold rounded-xl shadow-md transition-colors"
             >
               NEXT / SKIP
             </button>

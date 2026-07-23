@@ -52,8 +52,8 @@ export default function ResultPage() {
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-gray-200">
       <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 mb-12">
-        <h1 className="font-bold text-xl text-black">TULISAN MOB FT</h1>
-        <h1 className="font-bold text-xl text-black">FROST STAR JOURNEY</h1>
+        <h1 className="font-mestizo font-bold text-xl text-black">TULISAN MOB FT</h1>
+        <h1 className="font-mestizo font-bold text-xl text-black">FROST STAR JOURNEY</h1>
       </div>
 
       <div className="flex flex-col items-center w-full max-w-3xl flex-1">

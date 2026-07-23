@@ -34,8 +34,8 @@ export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-200">
       <div className="absolute top-0 w-full flex justify-between p-4 border-b border-gray-400 bg-gray-300">
-        <h1 className="font-bold text-xl text-black">TULISAN MOB FT</h1>
-        <h1 className="font-bold text-xl text-black">FROST STAR JOURNEY</h1>
+        <h1 className="font-mestizo font-bold text-xl text-black">TULISAN MOB FT</h1>
+        <h1 className="font-mestizo font-bold text-xl text-black">FROST STAR JOURNEY</h1>
       </div>
 
       <div className="flex flex-col items-center mt-10">
