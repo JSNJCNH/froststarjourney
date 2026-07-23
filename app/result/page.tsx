@@ -3,18 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type GameState = {
-  id: number;
-  isSolved: boolean;
-  timeSolved: number | null;
-};
+type GameState = { id: number; isSolved: boolean; timeSolved: number | null; };
 
 export default function ResultPage() {
   const router = useRouter();
   const [results, setResults] = useState<GameState[]>([]);
   const [solvedCount, setSolvedCount] = useState<number>(0);
-  
-  // State untuk verifikasi token keluar
   const [token, setToken] = useState("");
   const [error, setError] = useState("");
 
@@ -23,7 +17,6 @@ export default function ResultPage() {
     if (storedData) {
       const parsedData = JSON.parse(storedData);
       setResults(parsedData.questions);
-      
       const count = parsedData.questions.filter((q: GameState) => q.isSolved).length;
       setSolvedCount(count);
     }
@@ -33,44 +26,55 @@ export default function ResultPage() {
     if (seconds === null) return "-";
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}.${s}`; 
+    return `${m}:${s}`; 
   };
 
   const handleBackToStart = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-
-    // Validasi token keluar (mengabaikan huruf besar/kecil agar lebih fleksibel)
     if (token.toUpperCase() === "GOODJOB") {
       localStorage.removeItem("gameResults");
       router.push("/");
     } else {
-      setError("Token Keluar Salah atau Tidak Dikenali!");
+      setError("Token Keluar Salah!");
     }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gray-200">
-      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-gray-400 mb-12">
-        <h1 className="font-mestizo font-bold text-xl text-black">TULISAN MOB FT</h1>
-        <h1 className="font-mestizo font-bold text-xl text-black">FROST STAR JOURNEY</h1>
-      </div>
+    <main className="flex h-screen w-full items-center justify-center bg-cover bg-center p-6" style={{ backgroundImage: "url('/assets/bg-awan.png')" }}>
+      
+      <div className="relative flex h-[90vh] w-full max-w-5xl flex-col items-center rounded-[2rem] bg-white/30 p-8 shadow-2xl backdrop-blur-md border border-white/40">
+        
+        {/* Kiri Atas: Logo */}
+        <div className="absolute top-8 left-8 flex flex-col items-center leading-none">
+          <span className="font-mestizo text-4xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">MOBFT</span>
+          <span className="font-mestizo text-xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">2026</span>
+        </div>
 
-      <div className="flex flex-col items-center w-full max-w-3xl flex-1">
-        <h2 className="text-3xl font-bold text-black mb-4">WAKTU TELAH HABIS / SELESAI</h2>
-        <div className="px-6 py-2 bg-gray-400 text-black font-semibold rounded-md mb-12 shadow-sm">
+        {/* Tengah Atas: Judul */}
+        <h1 className="font-mestizo mt-2 text-4xl md:text-5xl font-bold text-[#D3C1A1] [-webkit-text-stroke:2px_#382A1D] drop-shadow-lg tracking-widest mb-8">
+          FROST STAR JOURNEY
+        </h1>
+
+        <h2 className="text-4xl font-semibold text-black tracking-wide font-serif mb-4">
+          Waktu Telah Habis
+        </h2>
+        
+        <div className="rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-12 py-2 font-bold text-black shadow-sm mb-8">
           {solvedCount}/3 Soal Terselesaikan
         </div>
 
-        <div className="bg-white rounded-xl w-full p-8 shadow-md flex flex-col items-center relative mb-8">
-          <h3 className="text-2xl font-bold text-black mb-8">WAKTU SUBMIT SOAL</h3>
-          <div className="flex justify-center gap-8 w-full mb-4">
+        {/* Kotak Rekap Waktu (Cream Box) */}
+        <div className="flex w-full max-w-3xl flex-col items-center rounded-3xl border-[4px] border-[#382A1D] bg-[#FDF8EE] p-8 shadow-xl mb-12">
+          <h3 className="text-3xl font-semibold text-black font-serif mb-8">Waktu Submit Soal</h3>
+          
+          <div className="flex justify-center gap-8 w-full">
             {[1, 2, 3].map((soalId) => {
               const soalData = results.find(r => r.id === soalId);
               return (
-                <div key={soalId} className="flex flex-col items-center w-32 bg-gray-300 rounded-md py-4 shadow-inner">
-                  <span className="text-gray-700 font-semibold mb-2 text-sm tracking-wide">SOAL {soalId}</span>
-                  <span className="text-black font-bold text-xl">
+                <div key={soalId} className="flex flex-col items-center justify-center w-36 h-36 rounded-2xl border-[3px] border-[#382A1D] bg-[#FFD12D] shadow-[4px_4px_0px_#382A1D]">
+                  <span className="text-black font-serif text-lg mb-2">Soal {soalId}</span>
+                  <span className="text-black font-bold text-3xl">
                     {formatSubmitTime(soalData?.timeSolved ?? null)}
                   </span>
                 </div>
@@ -79,26 +83,27 @@ export default function ResultPage() {
           </div>
         </div>
 
-        {/* Form Token Sebelum Kembali */}
-        <div className="w-full flex flex-col items-end mt-4">
-          <form onSubmit={handleBackToStart} className="flex flex-col items-end">
+        {/* Form Input Exit & Button (Berdampingan) */}
+        <form onSubmit={handleBackToStart} className="flex items-center gap-4 absolute bottom-12">
+          <div className="flex flex-col">
             <input
               type="text"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              className="px-4 py-2 text-black border border-gray-400 rounded-md w-64 mb-2 text-center focus:outline-none"
-              placeholder="Masukkan Token Keluar"
+              className="w-64 rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-6 py-3 text-center text-black font-semibold focus:outline-none focus:ring-4 focus:ring-yellow-300"
+              placeholder=""
               required
             />
-            {error && <p className="text-red-500 mb-2 font-semibold text-sm">{error}</p>}
-            <button 
-              type="submit"
-              className="px-10 py-3 mt-2 bg-gray-400 hover:bg-gray-500 text-black font-bold rounded-xl shadow-md transition-colors"
-            >
-              BACK TO HOME
-            </button>
-          </form>
-        </div>
+            {error && <p className="text-red-600 font-bold text-sm absolute -bottom-6 left-6">{error}</p>}
+          </div>
+          
+          <button 
+            type="submit"
+            className="rounded-xl border-[3px] border-[#382A1D] bg-[#FFD12D] px-8 py-3 text-lg font-bold text-black shadow-[4px_4px_0px_#382A1D] hover:translate-y-1 hover:shadow-[2px_2px_0px_#382A1D] transition-all"
+          >
+            BACK
+          </button>
+        </form>
 
       </div>
     </main>

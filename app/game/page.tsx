@@ -14,7 +14,7 @@ type GameState = {
 export default function GamePage() {
   const router = useRouter();
 
-  // State Hydration (Mencegah error render antara Server dan Client Next.js)
+  // State Hydration
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
 
   const [countdown, setCountdown] = useState<number>(3);
@@ -31,43 +31,36 @@ export default function GamePage() {
     { id: 3, imageId: 3, isSolved: false, timeSolved: null, boardState: [2, 7, 0, 5, 8, 3, 6, 1, 4] },
   ]);
 
-  // --- 1. INISIALISASI & LOAD PROGRESS (Hanya Berjalan Sekali Saat Mount) ---
+  // 1. INISIALISASI & LOAD PROGRESS
   useEffect(() => {
     const savedProgress = localStorage.getItem("frostStarProgress");
     
     if (savedProgress) {
-      // Jika ada progres, muat data tersebut
       const parsedData = JSON.parse(savedProgress);
       setQuestions(parsedData.questions);
       setTimeLeft(parsedData.timeLeft);
       setCurrentIndex(parsedData.currentIndex);
       setIsGameStarted(parsedData.isGameStarted);
-      setCountdown(0); // Lewati hitung mundur jika melanjutkan game
+      setCountdown(0); 
     } else {
-      // Jika tidak ada progres (baru mulai), acak gambar
       const randomImages = [1, 2, 3, 4, 5, 6].sort(() => 0.5 - Math.random()).slice(0, 3);
       setQuestions(prev => prev.map((q, i) => ({
         ...q,
         imageId: randomImages[i] 
       })));
     }
-    setIsLoaded(true);
+    setIsLoaded(true); // <--- INI YANG SEBELUMNYA HILANG
   }, []);
 
-  // --- 2. AUTO-SAVE PROGRESS (Berjalan Setiap Ada Perubahan State) ---
+  // 2. AUTO-SAVE PROGRESS
   useEffect(() => {
     if (isLoaded && isGameStarted) {
-      const progressData = {
-        questions,
-        timeLeft,
-        currentIndex,
-        isGameStarted
-      };
+      const progressData = { questions, timeLeft, currentIndex, isGameStarted };
       localStorage.setItem("frostStarProgress", JSON.stringify(progressData));
     }
   }, [questions, timeLeft, currentIndex, isGameStarted, isLoaded]);
 
-  // --- TIMER & HITUNG MUNDUR ---
+  // TIMER & HITUNG MUNDUR
   useEffect(() => {
     if (countdown > 0 && isLoaded) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -84,10 +77,10 @@ export default function GamePage() {
     }
   }, [isGameStarted, timeLeft]); 
 
-  // --- 3. WAKTU HABIS (Bersihkan Progress) ---
+  // WAKTU HABIS
   useEffect(() => {
     if (timeLeft === 0 && isLoaded) {
-      localStorage.removeItem("frostStarProgress"); // Hapus progress sementara
+      localStorage.removeItem("frostStarProgress");
       localStorage.setItem("gameResults", JSON.stringify({ questions, timeLeft }));
       router.push("/result");
     }
@@ -144,8 +137,6 @@ export default function GamePage() {
       
       if (totalSolved === 3) {
         showToast("Luar Biasa! Semua Map Selesai!");
-        
-        // --- 4. GAME SELESAI (Bersihkan Progress) ---
         localStorage.removeItem("frostStarProgress"); 
         localStorage.setItem("gameResults", JSON.stringify({ questions: currentQuestions, timeLeft }));
         
@@ -167,93 +158,98 @@ export default function GamePage() {
     setCurrentIndex(nextIdx);
   };
 
-  // Mencegah kedipan UI sebelum data selesai dimuat dari Local Storage
+  // Mencegah kedipan UI
   if (!isLoaded) {
-    return <main className="flex h-screen items-center justify-center bg-[#D9D9D9]"></main>;
+    return <main className="flex h-screen items-center justify-center bg-[#8ab6d6]"></main>;
   }
 
   const solvedCount = questions.filter(q => q.isSolved).length;
-  const activeBoard = questions[currentIndex].boardState;
-  const activeImageId = questions[currentIndex].imageId;
+  const activeBoard = questions[currentIndex]?.boardState || [];
+  const activeImageId = questions[currentIndex]?.imageId || 1;
 
   return (
-    <main className="flex h-screen flex-col items-center p-6 bg-[#D9D9D9] overflow-hidden">
-      <div className="w-full flex justify-between items-center pb-4 border-b-2 border-[#8C8282] shrink-0 relative z-20 bg-[#D9D9D9]">
-        <h1 className="font-mestizo font-bold text-xl text-black">TULISAN MOB FT</h1>
-        <h1 className="font-mestizo font-bold text-xl text-black">FROST STAR JOURNEY</h1>
-        <div className="px-4 py-2 bg-[#8C8282] text-black font-semibold rounded-md">
-          {solvedCount}/3 Soal Terselesaikan
-        </div>
+    <main 
+      className="flex h-screen w-full items-center justify-center bg-cover bg-center p-6 overflow-hidden"
+      style={{ backgroundImage: "url('/assets/bg-awan.png')" }}
+    >
+      
+      {/* Toast Notification di atas */}
+      <div className="fixed top-0 left-0 w-full flex justify-center z-50 pointer-events-none mt-4">
+        {toastMessage && (
+          <div className={`bg-lime-400 border-[3px] border-[#382A1D] text-black font-bold text-xl px-12 py-3 rounded-full shadow-lg pointer-events-auto transform transition-all duration-300 ${isToastVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"}`}>
+            {toastMessage}
+          </div>
+        )}
       </div>
 
-      {!isGameStarted ? (
-        <div className="flex flex-col items-center justify-center flex-1">
-          <p className="font-mestizo text-8xl font-bold text-gray-800 animate-pulse">{countdown}</p>
+      {/* Glass Card Container */}
+      <div className="relative flex h-[90vh] w-full max-w-6xl flex-col items-center rounded-[2rem] bg-white/30 p-8 shadow-2xl backdrop-blur-md border border-white/40">
+        
+        {/* Kiri Atas: Logo */}
+        <div className="absolute top-8 left-8 flex flex-col items-center leading-none">
+          <span className="font-mestizo text-4xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">MOBFT</span>
+          <span className="font-mestizo text-xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">2026</span>
         </div>
-      ) : (
-        <div className="flex flex-col flex-1 w-full max-w-4xl relative z-10 py-4">
 
-          <div className="absolute top-0 left-0 w-full flex justify-center z-10 pointer-events-none">
-            {toastMessage && (
-              <div 
-                className={`bg-lime-400 text-black font-bold text-xl px-12 py-3 rounded-b-md shadow-md pointer-events-auto transform transition-all duration-300 ease-in-out ${
-                  isToastVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
-                }`}
-              >
-                {toastMessage}
-              </div>
-            )}
+        {/* Tengah Atas: Judul & Badge */}
+        <div className="flex flex-col items-center mt-2">
+          <h1 className="font-mestizo text-4xl md:text-5xl font-bold text-[#D3C1A1] [-webkit-text-stroke:0.1px_#382A1D] drop-shadow-lg tracking-widest mb-4">
+            FROST STAR JOURNEY
+          </h1>
+          <div className="rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-10 py-1.5 font-bold text-black shadow-sm text-sm">
+            {solvedCount}/3 Soal Terselesaikan
           </div>
-          
-          <div className="flex justify-between items-start w-full shrink-0 relative z-10">
-            <div className="px-6 py-3 bg-[#8C8282] text-black font-bold text-2xl rounded-md shadow-inner">
+        </div>
+
+        {!isGameStarted ? (
+          <div className="flex flex-col items-center justify-center flex-1">
+            <p className="font-mestizo text-9xl font-bold text-[#FFD12D] [-webkit-text-stroke:4px_#382A1D] drop-shadow-2xl animate-pulse">{countdown}</p>
+          </div>
+        ) : (
+          <div className="flex flex-1 w-full relative justify-center items-center mt-8">
+            
+            {/* Kiri: Timer */}
+            <div className="absolute left-8 top-12 rounded-xl border-[3px] border-[#382A1D] bg-[#FFD12D] px-8 py-3 text-3xl font-bold text-black shadow-[4px_4px_0px_#382A1D]">
               {formatTime(timeLeft)}
             </div>
-            
+
+            {/* Kanan Atas: Hint Image (SUDAH DIUBAH KE .PNG) */}
             <div 
-              className="w-28 h-28 border-4 border-[#8C8282] shadow-lg rounded-sm"
+              className="absolute right-8 top-0 w-32 h-32 border-[3px] border-[#382A1D] shadow-lg rounded-sm"
               style={{
                 backgroundImage: `url('/assets/soal${activeImageId}.png')`,
                 backgroundSize: 'cover'
               }}
             ></div>
-          </div>
 
-          <div className="flex-1 flex justify-center items-center w-full relative z-10 min-h-0">
+            {/* Tengah: Puzzle Grid (SUDAH DIUBAH KE .PNG) */}
             <div className="w-[420px] h-[420px] bg-[#B0B0B0] grid grid-cols-3 gap-1 p-2 shadow-2xl rounded-sm">
               {activeBoard.map((tile, index) => (
                 <div
                   key={index}
                   onClick={() => handleTileClick(index)}
-                  className={`transition-transform duration-150 ${
-                    tile === 8 
-                      ? "bg-gray-300 shadow-inner" 
-                      : "cursor-pointer hover:brightness-110 shadow-md"
-                  }`}
+                  className={`transition-transform duration-150 ${tile === 8 ? "bg-transparent" : "cursor-pointer hover:brightness-110 border border-black/20"}`}
                   style={
-                    tile !== 8
-                      ? {
-                          backgroundImage: `url('/assets/soal${activeImageId}.png')`,
-                          backgroundSize: '300% 300%',
-                          backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
-                        }
-                      : {}
+                    tile !== 8 ? {
+                      backgroundImage: `url('/assets/soal${activeImageId}.png')`,
+                      backgroundSize: '300% 300%',
+                      backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
+                    } : {}
                   }
                 ></div>
               ))}
             </div>
-          </div>
 
-          <div className="flex justify-end w-full shrink-0 z-10">
+            {/* Kanan Bawah: NEXT Button */}
             <button 
               onClick={() => handleNextOrSkip()}
-              className="px-8 py-3 bg-[#8C8282] hover:bg-[#706868] text-black font-bold rounded-xl shadow-md transition-colors"
+              className="absolute right-8 bottom-4 rounded-xl border-[3px] border-[#382A1D] bg-[#FFD12D] px-10 py-3 text-xl font-bold text-black shadow-[4px_4px_0px_#382A1D] hover:translate-y-1 hover:shadow-[2px_2px_0px_#382A1D] transition-all"
             >
-              NEXT / SKIP
+              NEXT
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
