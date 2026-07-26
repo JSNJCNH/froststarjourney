@@ -92,6 +92,21 @@ export default function GamePage() {
     return `${m}:${s}`;
   };
 
+  // --- FUNGSI ADMIN RESET ---
+  const handleEmergencyReset = () => {
+    // Munculkan konfirmasi agar tidak ter-reset jika tidak sengaja ter-double click
+    const isConfirmed = window.confirm("Panitia: Apakah Anda yakin ingin mereset permainan dan kembali ke halaman awal?");
+    
+    if (isConfirmed) {
+      // 1. Hapus memori sementara dari storage
+      localStorage.removeItem("frostStarProgress"); 
+      
+      // 2. Gunakan window.location.href alih-alih router.push
+      // Ini akan memaksa browser melakukan Hard-Refresh dan membuang semua state Next.js yang menyangkut
+      window.location.href = "/"; 
+    }
+  };
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => { setIsToastVisible(true); }, 10);
@@ -183,23 +198,27 @@ export default function GamePage() {
       </div>
 
       {/* Glass Card Container */}
-      <div className="relative flex h-[90vh] w-full max-w-6xl flex-col items-center rounded-[2rem] bg-white/30 p-8 shadow-2xl backdrop-blur-md border border-white/40">
-        
-        {/* Kiri Atas: Logo */}
-        <div className="absolute top-8 left-8 flex flex-col items-center leading-none">
-          <span className="font-mestizo text-4xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">MOBFT</span>
-          <span className="font-mestizo text-xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">2026</span>
-        </div>
-
-        {/* Tengah Atas: Judul & Badge */}
-        <div className="flex flex-col items-center mt-2">
-          <h1 className="font-mestizo text-4xl md:text-5xl font-bold text-[#D3C1A1] [-webkit-text-stroke:0.1px_#382A1D] drop-shadow-lg tracking-widest mb-4">
-            FROST STAR JOURNEY
-          </h1>
-          <div className="rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-10 py-1.5 font-bold text-black shadow-sm text-sm">
-            {solvedCount}/3 Soal Terselesaikan
+        <div className="relative flex h-[90vh] w-full max-w-6xl flex-col items-center rounded-[2rem] bg-white/30 p-8 shadow-2xl backdrop-blur-md border border-white/40">
+          
+          {/* Kiri Atas: Logo (Berfungsi sebagai tombol rahasia reset panitia) */}
+          <div 
+            className="absolute top-8 left-8 flex flex-col items-center leading-none cursor-pointer hover:scale-105 transition-transform"
+            onDoubleClick={handleEmergencyReset}
+            title="Double Click to Reset (Admin)"
+          >
+            <span className="font-mestizo text-4xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">MOBFT</span>
+            <span className="font-mestizo text-xl font-bold text-white drop-shadow-md [-webkit-text-stroke:1px_#8C8282]">2026</span>
           </div>
-        </div>
+
+          {/* Tengah Atas: Judul & Badge */}
+          <div className="flex flex-col items-center mt-2">
+            <h1 className="font-mestizo text-4xl md:text-5xl font-bold text-[#D3C1A1] [-webkit-text-stroke:0.1px_#382A1D] drop-shadow-lg tracking-widest mb-4">
+              FROST STAR JOURNEY
+            </h1>
+            <div className="rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-10 py-1.5 font-bold text-black shadow-sm text-sm">
+              {solvedCount}/3 Soal Terselesaikan
+            </div>
+          </div>
 
         {!isGameStarted ? (
           <div className="flex flex-col items-center justify-center flex-1">

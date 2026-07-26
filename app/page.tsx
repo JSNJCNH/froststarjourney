@@ -50,7 +50,7 @@ export default function HomePage() {
             type="text"
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder="Enter Your Group Name!!"
+            placeholder="Enter the Code!!"
             className="mb-2 w-80 rounded-full border-[3px] border-[#382A1D] bg-[#F8F1E1] px-6 py-3 text-center text-black font-semibold focus:outline-none focus:ring-4 focus:ring-yellow-300 transition-all shadow-md placeholder-gray-500"
             required
           />
