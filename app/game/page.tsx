@@ -94,16 +94,22 @@ export default function GamePage() {
 
   // --- FUNGSI ADMIN RESET ---
   const handleEmergencyReset = () => {
-    // Munculkan konfirmasi agar tidak ter-reset jika tidak sengaja ter-double click
     const isConfirmed = window.confirm("Panitia: Apakah Anda yakin ingin mereset permainan dan kembali ke halaman awal?");
     
     if (isConfirmed) {
-      // 1. Hapus memori sementara dari storage
-      localStorage.removeItem("frostStarProgress"); 
-      
-      // 2. Gunakan window.location.href alih-alih router.push
-      // Ini akan memaksa browser melakukan Hard-Refresh dan membuang semua state Next.js yang menyangkut
-      window.location.href = "/"; 
+      // 1. Matikan indikator game agar useEffect auto-save langsung lumpuh
+      setIsGameStarted(false);
+      setIsLoaded(false); 
+
+      // 2. Beri jeda 100 milidetik agar React selesai menghentikan proses latar belakangnya
+      setTimeout(() => {
+        // Hapus paksa seluruh storage yang berhubungan dengan game ini
+        localStorage.removeItem("frostStarProgress"); 
+        localStorage.removeItem("gameResults"); // Jaga-jaga bersihkan result juga
+        
+        // 3. Paksa navigasi hard-refresh ke halaman utama
+        window.location.href = "/"; 
+      }, 100);
     }
   };
 
